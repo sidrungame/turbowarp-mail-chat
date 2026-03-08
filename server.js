@@ -33,7 +33,7 @@ wss.on("connection", ws => {
 async function sendEmail(message){
 
   const replyLink =
-  `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/reply?msg=`;
+  `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/reply`;
 
   await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -50,14 +50,28 @@ async function sendEmail(message){
 
 ${message}
 
-Répondre :
-${replyLink}TA_REPONSE`
+Répondre ici :
+${replyLink}`
     })
   });
 
 }
 
+// page pour écrire la réponse
 app.get("/reply",(req,res)=>{
+
+res.send(`
+<h2>Répondre au message TurboWarp</h2>
+<form action="/send">
+<input name="msg" placeholder="Ta réponse">
+<button type="submit">Envoyer</button>
+</form>
+`);
+
+});
+
+// envoyer la réponse
+app.get("/send",(req,res)=>{
 
   const reply = req.query.msg;
 
