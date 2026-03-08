@@ -2,11 +2,9 @@ const WebSocket = require("ws");
 const express = require("express");
 
 const app = express();
-app.use(express.json());
-
 const port = process.env.PORT || 3000;
 
-let lastClient = null;
+let client = null;
 
 const server = app.listen(port, () => {
   console.log("Serveur démarré");
@@ -14,20 +12,17 @@ const server = app.listen(port, () => {
 
 const wss = new WebSocket.Server({ server });
 
-console.log("WebSocket prêt");
-
-// connexion turbowarp
 wss.on("connection", ws => {
 
   console.log("Client TurboWarp connecté");
 
-  lastClient = ws;
+  client = ws;
 
   ws.on("message", async data => {
 
     const message = data.toString();
 
-    console.log("Message TurboWarp:", message);
+    console.log("Message reçu :", message);
 
     await sendEmail(message);
 
@@ -37,6 +32,9 @@ wss.on("connection", ws => {
 
 async function sendEmail(message){
 
+  const replyLink =
+  `https://${process.env.RENDER_EXTERNAL_HOSTNAME}/reply?msg=`;
+
   await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
@@ -44,27 +42,29 @@ async function sendEmail(message){
       "Content-Type": "application/json"
     },
     body: JSON.stringify({
-      from: "chat@resend.dev",
+      from: "onboarding@resend.dev",
       to: process.env.EMAIL,
       subject: "Message TurboWarp",
-      text: message,
-      reply_to: "reply@tondomaine.com"
+      text:
+`Message reçu :
+
+${message}
+
+Répondre :
+${replyLink}TA_REPONSE`
     })
   });
 
 }
 
-// webhook réponse email
-app.post("/reply", (req,res)=>{
+app.get("/reply",(req,res)=>{
 
-  const reply = req.body.text;
+  const reply = req.query.msg;
 
-  console.log("Réponse email:", reply);
-
-  if(lastClient){
-    lastClient.send(reply);
+  if(client){
+    client.send(reply);
   }
 
-  res.send("ok");
+  res.send("Réponse envoyée au client TurboWarp");
 
 });
